@@ -10,7 +10,7 @@ Using Supervised Algorithms to predict the wine quality
 - **Documentation and Presentation:** Prepared a detailed 30-page report, an engaging presentation, and a LinkedIn video summarizing the project's findings.  
 
 **Technology Used:**  
-- **Tools:** Python, R programming  
+- **Tools:** R programming  
 - **Purpose:** To evaluate and compare predictive models for wine quality, providing insights into the best-performing algorithm for accurate predictions.  
 
 **Outcome:** Successfully identified the most reliable algorithm for wine quality prediction, enhancing decision-making capabilities in quality assessment.
