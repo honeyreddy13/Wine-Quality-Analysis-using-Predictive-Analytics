@@ -1,0 +1,299 @@
+#Wine Quality Analysis using R programming
+#Here is the code in R for Wine Quality detection using predictive analytics
+---
+title: "Wine Dataset Predictive Analytics Dashboard"
+output: 
+  html_document:
+    theme: "cosmo"
+    highlight: "tango"
+date: "2024-11-17"
+---
+
+# Load necessary libraries
+intsall.packages("corrplot")
+intsall.packages("caTools")
+intsall.packages("neuralnet")
+intsall.packages("gmodels")
+intsall.packages("rpart")
+intsall.packages("rpart.plot")
+library(rattle)
+library(caTools)
+library(class)
+library(e1071)
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(ggplot2)
+library(corrplot)
+library(psych)
+library(neuralnet)
+library(gmodels)
+
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load the wine dataset explicitly
+data(wine, package = "rattle")  # Loading wine dataset from rattle package
+
+# Assign wine dataset to wine_data variable
+wine_data <- as.data.frame(wine)
+
+# Now you can run the summary and str functions on wine_data
+summary(wine_data)
+str(wine_data)
+sum(is.na(wine_data))  # Check for missing values
+colSums(is.na(wine_data))  # Check for missing values column-wise
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r,echo=FALSE}
+library(rattle)
+wine_data<-as.data.frame(wine)
+summary(wine_data)
+str(wine_data)
+sum(is.na(wine_data))  # Check for missing values
+colSums(is.na(wine_data))
+```
+
+## Including Plots
+```{r,echo=FALSE}
+library(corrplot)
+# Correlation Matrix
+cor_matrix <- cor(wine_data[, -1])  # Exclude the target column
+corrplot(cor_matrix, method = "number")
+corrplot(cor_matrix, type = "upper")
+
+```
+
+You can also embed plots, for example:
+```{r,echo=FALSE}
+library(psych)
+# Pairwise scatter plots
+pairs.panels(wine_data[, -1])
+```
+
+```{r,echo=FALSE}
+library(caTools)
+# Split dataset into training and testing sets
+# Split dataset into training and testing sets
+set.seed(123)
+split <- sample.split(wine_data$Type, SplitRatio = 0.7)
+train <- subset(wine_data, split == TRUE)
+test <- subset(wine_data, split == FALSE)
+
+# Prepare data for KNN
+train_features <- train[, -1]
+test_features <- test[, -1]
+train_labels <- train[, 1]
+test_labels <- test[, 1]
+
+# Train KNN model
+library(class)
+pred_knn <- knn(train_features, test_features, train_labels, k = 5)
+
+# Confusion Matrix
+cm_knn <- table(Predicted = pred_knn, Actual = test_labels)
+cm_knn
+
+```
+
+```{r,echo=FALSE}
+# Metrics for KNN
+library(caret)
+knn_accuracy <- sum(diag(cm_knn)) / sum(cm_knn)
+knn_error <- 1 - knn_accuracy
+precision_knn <- posPredValue(cm_knn, positive = 1)
+recall_knn <- sensitivity(cm_knn, positive = 1)
+knn_f1 <- (2 * precision_knn * recall_knn) / (precision_knn + recall_knn)
+knn_accuracy; knn_error; knn_f1
+# Load necessary library
+library(ggplot2)
+
+# KNN metrics
+knn_metrics <- data.frame(
+  Metric = c("Accuracy", "Error Rate", "F1 Score"),
+  Value = c(knn_accuracy, knn_error, knn_f1)
+)
+
+# Create a bar plot for KNN metrics
+ggplot(knn_metrics, aes(x = Metric, y = Value, fill = Metric)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  labs(title = "KNN Model Performance Metrics",
+       x = "Metric",
+       y = "Value") +
+  scale_fill_manual(values = c("Accuracy" = "skyblue", "Error Rate" = "red", "F1 Score" = "green")) +
+  theme_minimal()
+
+
+```
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r,echo=FALSE}
+# Train Naive Bayes model
+library(e1071)
+classifier_nb <- naiveBayes(Type ~ ., data = train)
+pred_nb <- predict(classifier_nb, newdata = test)
+
+# Confusion Matrix
+cm_nb <- table(Predicted = pred_nb, Actual = test$Type)
+cm_nb
+```
+
+```{r,echo=FALSE}
+
+# Metrics for Naive Bayes
+nb_accuracy <- sum(diag(cm_nb)) / sum(cm_nb)
+nb_error <- 1 - nb_accuracy
+precision_nb <- posPredValue(cm_nb, positive = 1)
+recall_nb <- sensitivity(cm_nb, positive = 1)
+nb_f1 <- (2 * precision_nb * recall_nb) / (precision_nb + recall_nb)
+nb_accuracy; nb_error; nb_f1
+# Naive Bayes metrics
+nb_metrics <- data.frame(
+  Metric = c("Accuracy", "Error Rate", "F1 Score"),
+  Value = c(nb_accuracy, nb_error, nb_f1)
+)
+
+# Create a bar plot for Naive Bayes metrics
+ggplot(nb_metrics, aes(x = Metric, y = Value, fill = Metric)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  labs(title = "Naive Bayes Model Performance Metrics",
+       x = "Metric",
+       y = "Value") +
+  scale_fill_manual(values = c("Accuracy" = "skyblue", "Error Rate" = "red", "F1 Score" = "green")) +
+  theme_minimal()
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot
+
+```{r,echo=FALSE}
+# Train Decision Tree model
+library(rpart)
+library(rpart.plot)
+model_dt <- rpart(Type ~ ., data = train, method = "class")
+rpart.plot(model_dt, type = 4, extra = 103)
+
+# Predictions and Confusion Matrix
+pred_dt <- predict(model_dt, test, type = "class")
+cm_dt <- table(Predicted = pred_dt, Actual = test$Type)
+cm_dt
+```
+
+```{r,echo=FALSE}
+
+# Metrics for Decision Tree
+dt_accuracy <- sum(diag(cm_dt)) / sum(cm_dt)
+dt_error <- 1 - dt_accuracy
+precision_dt <- posPredValue(cm_dt, positive = 1)
+recall_dt <- sensitivity(cm_dt, positive = 1)
+dt_f1 <- (2 * precision_dt * recall_dt) / (precision_dt + recall_dt)
+dt_accuracy; dt_error; dt_f1
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot
+
+```{r,echo=FALSE}
+# Train Linear Regression model
+regressor <- lm(Alcohol ~ ., data = train)
+summary(regressor)
+
+# Predictions
+y_pred <- predict(regressor, newdata = test)
+
+# Visualization: Predicted vs Actual
+ggplot(test, aes(x = Alcohol, y = y_pred)) +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Predicted vs Actual Alcohol Content",
+       x = "Actual Alcohol", y = "Predicted Alcohol")
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot
+
+```{r,echo=FALSE}
+# Train Neural Network
+# Neural Network Model
+library(neuralnet)
+nn_model <- neuralnet(Type ~ ., data = train, hidden = c(5), linear.output = FALSE)
+plot(nn_model)
+
+# Predictions
+test_predictions <- compute(nn_model, test[, -1])$net.result
+predicted_class <- apply(test_predictions, 1, which.max)
+
+# Convert predicted class to factor if needed
+predicted_class <- factor(predicted_class, levels = 1:length(levels(test$Type)))
+
+# Confusion Matrix
+cm_nn <- confusionMatrix(predicted_class, test$Type)
+cm_nn
+```
+
+```{r,echo=FALSE}
+
+# Extracting metrics from the confusion matrix
+nn_accuracy <- cm_nn$overall['Accuracy']
+nn_error <- 1 - nn_accuracy
+
+# Ensure the class names are correctly matched for 'Pos Pred Value' and 'Sensitivity'
+precision_nn <- cm_nn$byClass['Pos Pred Value']
+recall_nn <- cm_nn$byClass['Sensitivity']
+nn_f1 <- (2 * precision_nn * recall_nn) / (precision_nn + recall_nn)
+
+# Print metrics
+nn_accuracy
+nn_error
+nn_f1
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot
+
+```{r,echo=FALSE}
+# Comparison Table
+comparison <- data.frame(
+  Model = c("KNN", "Naive Bayes", "Decision Tree", "Neural Network"),
+  Accuracy = c(knn_accuracy, nb_accuracy, dt_accuracy, nn_accuracy),
+  ErrorRate = c(knn_error, nb_error, dt_error, nn_error),
+  F1_Score = c(knn_f1, nb_f1, dt_f1, nn_f1)
+)
+comparison
+# Create a data frame for model comparison
+model_comparison <- data.frame(
+  Model = c("KNN", "Naive Bayes", "Decision Tree", "Neural Network"),
+  Accuracy = c(knn_accuracy, nb_accuracy, dt_accuracy, nn_accuracy),
+  ErrorRate = c(knn_error, nb_error, dt_error, nn_error),
+  F1_Score = c(knn_f1, nb_f1, dt_f1, nn_f1)
+)
+
+# Reshape the data to long format for ggplot
+library(reshape2)
+model_comparison_long <- melt(model_comparison, id.vars = "Model", variable.name = "Metric", value.name = "Value")
+
+# Create the bar plot
+library(ggplot2)
+ggplot(model_comparison_long, aes(x = Model, y = Value, fill = Metric)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Model Comparison: Accuracy, Error Rate, and F1 Score", 
+       x = "Model", y = "Score") +
+  scale_fill_manual(values = c("Accuracy" = "blue", "ErrorRate" = "red", "F1_Score" = "green")) +
+  theme_minimal()
+
+
+```
